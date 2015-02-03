@@ -1,0 +1,213 @@
+<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>reddit-oauth</title>
+
+    <script src="../../webcomponentsjs/webcomponents.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../reddit-oauth.html">
+  </head>
+  <body>
+    <reddit-oauth-config proxyUrl="/reddit-proxy"
+                         clientId="ABC123"
+                         requestTimeout="1000">
+    </reddit-oauth-config>
+    <reddit-oauth></reddit-oauth>
+    <script>
+    (function() {
+      'use strict';
+
+      suite('<reddit-oauth> basic', function() {
+
+        var server, oauth, config, requests;
+
+        var setupAppOnlyRequest = function(opt_resp) {
+          var resp = {
+            access_token: 'TOKEN',
+            token_type: 'bearer',
+            expires_in: 3600,
+            scope: '*'
+          };
+          if (opt_resp) {
+            Object.keys(opt_resp).forEach(function(key) {
+              resp[key] = opt_resp[key];
+            });
+          }
+          var respHead = { 'Content-Type': 'application/json' };
+          var respBody = JSON.stringify(resp);
+          server.respondWith('POST', '/reddit-proxy/api/v1/access_token',
+                             [200, respHead, respBody]);
+        };
+
+        before(function() {
+          config = document.querySelector('reddit-oauth-config');
+          oauth = document.querySelector('reddit-oauth');
+          oauth.revoke();
+          server = sinon.fakeServer.create();
+          var onCreate = server.xhr.onCreate;
+          server.xhr.onCreate = function(xhr) {
+            requests.push(xhr);
+            onCreate(xhr);
+          };
+        });
+
+        beforeEach(function(done) {
+          oauth.revoke();
+          requests = [];
+          server.autoRespond = true;
+          config.requestTimeout = 1000;
+          flush(function() {
+            done();
+          });
+        });
+
+        after(function() {
+          oauth.revoke();
+          server.restore();
+        });
+
+        test('authorize()', function(done) {
+          oauth.authorize({
+            accessToken: 'AUTH_TOKEN',
+            expiresAt: Date.now() + 3600,
+            scope: '*',
+            type: 'apponly'
+          });
+          oauth.getToken().then(function(token) {
+            assert.equal(token, 'AUTH_TOKEN');
+            assert.equal(requests.length, 0);
+            done();
+          }).catch(done);
+        });
+
+        test('revoke()', function() {
+          var auth = {
+            accessToken: 'REVOKE_TOKEN',
+            expiresAt: Date.now() + 3600,
+            scope: '*',
+            type: 'apponly'
+          };
+          oauth.authorize(auth);
+          var rawAuth = localStorage.getItem('reddit-oauth-auth');
+          assert.deepEqual(JSON.parse(rawAuth), auth);
+          oauth.revoke();
+          assert.equal(localStorage.getItem('reddit-oauth-auth'), null);
+        });
+
+        test('getToken() returns app-only token', function(done) {
+          setupAppOnlyRequest();
+          oauth.getToken().then(function(token) {
+            assert.equal(token, 'TOKEN');
+            assert.equal(requests.length, 1);
+            done();
+          }).catch(done);
+        });
+
+        test('getToken() returns value from cache', function(done) {
+          setupAppOnlyRequest();
+          oauth.getToken().
+              then(function(token) {
+                assert.equal(token, 'TOKEN');
+                assert.equal(requests.length, 1);
+                return oauth.getToken();
+              }).
+              then(function(token) {
+                assert.equal(token, 'TOKEN');
+                assert.equal(requests.length, 1);
+                done();
+              }).
+              catch(done);
+        });
+
+        test('getToken() only one call at a time', function(done) {
+          setupAppOnlyRequest();
+          var tokenA = oauth.getToken();
+          var tokenB = oauth.getToken();
+          Promise.all([tokenA, tokenB]).then(function(tokens) {
+            assert.equal(tokens[0], tokens[1]);
+            assert.equal(requests.length, 1);
+            done();
+          }).catch(done);
+        });
+
+        test('getToken() with app-only refresh', function(done) {
+          setupAppOnlyRequest();
+          oauth.authorize({
+            accessToken: 'CACHE_TOKEN',
+            expiresAt: Date.now(),  // expired
+            scope: '*',
+            type: 'apponly'
+          });
+          oauth.getToken().then(function(token) {
+            assert.equal(token, 'TOKEN');
+            assert.equal(requests.length, 1);
+            assert.match(requests[0].requestBody, /device_id/);
+            done();
+          }).catch(done);
+        });
+
+        test('getToken() with implicit refresh', function(done) {
+          var resp = {
+            access_token: 'NEW_ACCESS_TOKEN',
+            refresh_token: 'NEW_REFRESH_TOKEN',
+            token_type: 'bearer',
+            expires_in: 3600,
+            scope: 'read'
+          };
+          var respHead = { 'Content-Type': 'application/json' };
+          var respBody = JSON.stringify(resp);
+          server.respondWith('POST', '/reddit-proxy/api/v1/access_token',
+                             [200, respHead, respBody]);
+          oauth.authorize({
+            accessToken: 'ACCESS_TOKEN',
+            refreshToken: 'REFRESH_TOKEN',
+            expiresAt: Date.now(),  // expired
+            scope: 'read,vote',
+            type: 'implicit'
+          });
+          oauth.getToken().then(function(token) {
+            assert.equal(token, 'NEW_ACCESS_TOKEN');
+            assert.equal(requests.length, 1);
+            assert.match(requests[0].requestBody, /refresh_token=REFRESH_TOKEN/);
+            done();
+          }).catch(done);
+        });
+
+        test('getToken() returns auth error', function(done) {
+          var respHead = { 'Content-Type': 'application/json' };
+          var respBody = JSON.stringify({
+            error: 'Not Authorized'
+          });
+          server.respondWith('POST', '/reddit-proxy/api/v1/access_token',
+                             [401, respHead, respBody]);
+          oauth.getToken().then(function(token) {
+            assert.fail(token);
+          }, function(e) {
+            assert.equal(e.message, 'Not Authorized');
+            done();
+          }).catch(done);
+        });
+
+        test('Cancel pending getToken() call when authorize()', function(done) {
+          setupAppOnlyRequest();
+          oauth.getToken().then(function(token) {
+            assert.fail(token);
+          }, function(e) {
+            assert.equal(e.message, 'Request Canceled');
+            done();
+          }).catch(done);
+          oauth.authorize({
+            accessToken: 'NEW_TOKEN',
+            expiresAt: Date.now() + 3600,
+            scope: '*',
+            type: 'apponly'
+          });
+        });
+
+      });
+    })();
+    </script>
+  </body>
+</html>

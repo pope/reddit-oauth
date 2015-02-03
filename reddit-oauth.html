@@ -1,0 +1,446 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../client-uuid/client-uuid.html">
+
+<!--
+Element to configure OAuth tokens access to Reddit.
+
+##### Example
+
+To set the values:
+
+    <reddit-oauth-config proxyUrl="https://shifteleven.com/reddit-auth/"
+                         clientId="ABC123"
+                         requestTimeout="1000">
+    </reddit-oauth-config>
+
+To access the config:
+
+    <reddit-oauth-config proxyUrl="{{proxyUrl}}"
+                         clientId="{{clientId}}"
+                         deviceId="{{deviceId}}"
+                         requestTimeout="{{requestTimeout}}">
+    </reddit-oauth-config>
+
+@element reddit-oauth-config
+@blurb Element to configure OAuth tokens access to Reddit.
+@status alpha
+@homepage http://pope.github.io/client-uuid
+-->
+<polymer-element name="reddit-oauth-config" hidden
+                 attributes="proxyUrl clientId deviceId requestTimeout">
+  <template>
+    <client-uuid name="reddit-uuid" value="{{deviceId}}"></client-uuid>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+
+    var config = {
+      proxyUrl: '',
+      clientId: '',
+      deviceId: '',
+      requestTimeout: 0,
+    };
+
+    // Export
+    window.reddit = window.reddit || {};
+    window.reddit.auth = window.reddit.auth || {};
+    window.reddit.auth.config = config;
+
+    Polymer({
+      /**
+       * The location of the reddit authorization proxy.
+       *
+       * Reddit does not provide CORS headers for the https://ssl.reddit.com
+       * authorization endpoints. Therefore, a proxy app is required for all
+       * a purely JS app to do any authorization. The location of the proxy app
+       * can be set via this.
+       *
+       * @attribute proxyUrl
+       * @type string
+       */
+      proxyUrl: '',
+
+      /**
+       * The client ID of the app.
+       *
+       * @attribute clientId
+       * @type string
+       */
+      clientId: '',
+
+      /**
+       * A device ID, unique to the user. This is used for application only
+       * oauth, as per the Reddit's OAuth docs. See http://goo.gl/R22Bs8.
+       *
+       * A value is automatically generated. If the uses wishes to not be
+       * tracked, please set this to a value of `DO_NOT_TRACK_THIS_DEVICE`.
+       *
+       * @attribute deviceId
+       * @type string
+       */
+      deviceId: '',
+
+      /**
+       * The number of milliseconds an oauth request can take before
+       * automatically being terminated. A value of 0 (which is the default)
+       * means there is no timeout.
+       *
+       * @attribute requestTimeout
+       * @type number
+       * @default 0
+       */
+      requestTimeout: 0,
+
+      proxyUrlChanged: function() {
+        config.proxyUrl = this.proxyUrl;
+      },
+
+      clientIdChanged: function() {
+        config.clientId = this.clientId;
+      },
+
+      deviceIdChanged: function() {
+        config.deviceId = this.deviceId;
+      },
+
+      requestTimeoutChanged: function() {
+        config.requestTimeout = this.requestTimeout;
+      },
+
+      created: function() {
+        this.proxyUrl = config.proxyUrl;
+        this.clientId = config.clientId;
+        this.requestTimeout = config.requestTimeout;
+        var observer = new ObjectObserver(config);
+        observer.open(function(added, removed, changed) {
+          Object.keys(added).forEach(function(property) {
+            throw Error('Unexpected propery addition, ' + property);
+          });
+          Object.keys(removed).forEach(function(property) {
+            throw Error('Unexpected property removal, ' + property);
+          });
+          Object.keys(changed).forEach(function(property) {
+            if (this[property] === changed[property]) {
+              return;
+            }
+            this[property] = changed[property];
+          }.bind(this));
+        }.bind(this));
+      },
+
+      ready: function() {
+        if (this.proxyUrl !== config.proxyUrl) {
+          config.proxyUrl = this.proxyUrl;
+        }
+        if (this.clientId !== config.clientId) {
+          config.clientId = this.clientId;
+        }
+        if (this.requestTimeout !== config.requestTimeout) {
+          config.requestTimeout = this.requestTimeout;
+        }
+        // Device ID should automatically update since that is persisted.
+        config.deviceId = this.deviceId;
+      }
+    });
+
+  })();
+  </script>
+</polymer-element>
+
+<!--
+Element to manage OAuth tokens for accessing Reddit APIs.
+
+By default, it supplies an app only OAuth token, so that all API requests can
+go through https://oauth.reddit.com. The token can be replaced by a new token
+from the implicit grant flow. The token is saved and is refreshed right before
+it expires.
+
+The token can also be revoked, say in the event a user logs out. Upon doing so,
+a new app-only token will be made available.
+
+##### Example
+
+    <reddit-oauth></reddit-oauth>
+    <script>
+      var redditOauth = document.querySelector('reddit-oauth');
+      redditOauth.getToken().then(function(token) {
+        // Do something with the token
+      }).catch(function(err) {
+        // Do something with the error.
+      });
+    </script>
+
+@element reddit-oauth
+@blurb Element to manage OAuth tokens for accessing Reddit APIs.
+@status alpha
+@homepage http://pope.github.io/client-uuid
+-->
+<polymer-element name="reddit-oauth" hidden>
+  <script>
+  (function() {
+    'use strict';
+
+    // TODO(pope): Move the bulk of the stuff down there up here. We only want
+    // one instance of token refreshing running at a time. Things to consider:
+    //
+    // - Keep a count of elements. If 0, don't refresh.
+    // - What are all of the events that we care about?
+    // - Check expiration when pulling token from localStorage.
+    // - Error cases - Is there a recoverable vs non-recoverable case to handle?
+
+    var globalAuth;
+
+    Polymer({
+
+      created: function() {
+        globalAuth = globalAuth || new Auth();
+      },
+
+      /**
+       * Gets a promise for a new access token.
+       *
+       * @method getToken
+       */
+      getToken: function() {
+        return globalAuth.getToken();
+      },
+
+      /**
+       * Authorize as a user with the authentication information.
+       *
+       * @method authorize
+       * @param {Object} auth
+       * @param {string} auth.accessToken The current access token.
+       * @param {string} auth.refreshToken Token used to get a new access token.
+       * @param {number} auth.expiresAt The timestamp the token expires at.
+       * @param {Array} auth.scopes A list of scopes authorized for the token.
+       * @param {string} auth.type The type of auth - `apponly` or `implicit`.
+       */
+      authorize: function(auth) {
+        globalAuth.authorize(auth);
+      },
+
+      /**
+       * Revokes the current auth data. Useful if the user decides to sign out.
+       *
+       * @method revoke
+       */
+      revoke: function() {
+        globalAuth.revoke();
+      }
+    });
+
+    var storageKey = 'reddit-oauth-auth';
+
+    var loadAuth = function() {
+      var rawAuth = localStorage.getItem(storageKey);
+      if (!rawAuth) {
+        return null;
+      }
+      try {
+        return JSON.parse(rawAuth);
+      } catch (ex) {
+        window.console.error(ex);
+        // Get rid of the unparsable data.
+        deleteAuth();
+        return null;
+      }
+    };
+
+    var saveAuth = function(auth) {
+      if (!auth) {
+        deleteAuth();
+        return;
+      }
+      var rawAuth = JSON.stringify(auth);
+      localStorage.setItem(storageKey, rawAuth);
+    };
+
+    var deleteAuth = function() {
+      localStorage.removeItem(storageKey);
+    };
+
+    var toQueryString = function(obj) {
+      return Object.keys(obj).map(function(key) {
+        return encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]);
+      }).join('&');
+    };
+
+    var requestAppAuth = function() {
+      var params = {
+        'grant_type': 'https://oauth.reddit.com/grants/installed_client',
+        'device_id': reddit.auth.config.deviceId
+      };
+      var request = requestAccess(params);
+      request.promise = request.promise.then(function(results) {
+        var data = results.data;
+        var start = results.start;
+        return {
+          accessToken: data.access_token,
+          expiresAt: start + (data.expires_in * 1000),
+          scope: data.scope,
+          type: 'apponly'
+        };
+      });
+      return request;
+    };
+
+    var requestTokenRefresh = function(auth) {
+      var params = {
+        'grant_type': 'refresh',
+        'refresh_token': auth.refreshToken
+      };
+      var request = requestAccess(params);
+      request.promise = request.promise.then(function(results) {
+        var data = results.data;
+        var start = results.start;
+        return {
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,  // TODO(pope): Verify this!
+          expiresAt: start + (data.expires_in * 1000),
+          scope: data.scope,
+          type: 'implicit'
+        };
+      });
+      return request;
+    };
+
+    var requestAccess = function(params) {
+      var config = reddit.auth.config;
+      var xhr = new XMLHttpRequest();
+      return {
+        xhr: xhr,
+        promise: new Promise(function(resolve, reject) {
+          var start = Date.now();
+          xhr.open('POST', config.proxyUrl + '/api/v1/access_token');
+          xhr.setRequestHeader('Content-type',
+                               'application/x-www-form-urlencoded');
+          xhr.setRequestHeader('Authorization',
+                               'Basic ' + btoa(config.clientId + ':'));
+          xhr.timeout = config.requestTimeout;
+          xhr.onload = function() {
+            try {
+              var data = JSON.parse(xhr.responseText);
+              if (data.error) {
+                throw new Error(data.error);
+              }
+              resolve({
+                data: data,
+                start: start
+              });
+            } catch (ex) {
+              reject(ex);
+            }
+          };
+          xhr.onerror = function() {
+            reject(new Error('XHR Request Error'));
+          };
+          xhr.onabort = function() {
+            reject(new Error('XHR Request Abort'));
+          };
+          xhr.ontimeout = function() {
+            reject(new Error('XHR Request Timeout'));
+          };
+          xhr.send(toQueryString(params));
+        })
+      };
+    };
+
+    var refreshAuth = function(auth) {
+      if (auth.type === 'implicit') {
+        return requestTokenRefresh(auth);
+      }
+      return requestAppAuth();
+    };
+
+    var Auth = function() {
+      this.token_ = null;
+      this.activeXhr_ = null;
+      this.requestId_ = 0;
+    };
+
+    Auth.prototype = {
+
+      authorize: function(auth) {
+        // Cancel existing requests.
+        // Save the new token.
+        this.requestId_++;
+        if (this.activeXhr_) {
+          this.activeXhr_.abort();
+        }
+        saveAuth(auth);
+      },
+
+      revoke: function() {
+        // Cancel existing requests.
+        // Call the revoke service.
+        // Delete the token.
+        this.requestId_++;
+        if (this.activeXhr_) {
+          this.activeXhr_.abort();
+        }
+        deleteAuth();
+        // TODO(pope): Call the revoke service.
+      },
+
+      getToken: function() {
+        // If we're already fetching, use that.
+        // Load the token.
+        //   - Not there? Get an app token.
+        // Check the expiration.
+        //   - Expired? Refresh the token.
+        // Re-save the token
+        // Return answer.
+        if (this.token_) {
+          return this.token_;
+        }
+
+        var requestId = ++this.requestId_;
+        this.token_ = Promise.resolve(loadAuth()).
+            then(function(auth) {
+              if (requestId !== this.requestId_) {
+                throw Error('Request Canceled');
+              }
+              if (!auth) {
+                var req = requestAppAuth();
+                this.activeXhr_ = req.xhr;
+                return req.promise;
+              }
+              return auth;
+            }.bind(this)).
+            then(function(auth) {
+              if (requestId !== this.requestId_) {
+                throw Error('Request Canceled');
+              }
+
+              if (auth.expiresAt <= Date.now()) {
+                var req = refreshAuth(auth);
+                this.activeXhr_ = req.xhr;
+                return req.promise;
+              }
+              return auth;
+            }.bind(this)).
+            then(function(auth) {
+              if (requestId !== this.requestId_) {
+                throw Error('Request Canceled');
+              }
+
+              saveAuth(auth);
+              this.token_ = null;
+              this.activeXhr_ = null;
+              return auth.accessToken;
+            }.bind(this)).
+            catch(function(err) {
+              this.token_ = null;
+              this.activeXhr_ = null;
+              throw err;
+            }.bind(this));
+        return this.token_;
+      }
+    };
+
+  })();
+  </script>
+
+</polymer-element>

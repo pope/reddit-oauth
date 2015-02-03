@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>reddit-oauth</title>
+
+    <script src="../../webcomponentsjs/webcomponents.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../reddit-oauth.html">
+  </head>
+  <body>
+    <client-uuid name="reddit-uuid"></client-uuid>
+    <script>
+    (function() {
+      'use strict';
+
+      var uuidV4Re = /^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
+
+      suite('<reddit-oauth-config> basic', function() {
+
+        before(function() {
+          document.querySelector('client-uuid').reset();
+        });
+
+        test('reuse config', function(done) {
+          var config = document.createElement('reddit-oauth-config');
+          config.proxyUrl = 'http://localhost:9000/reddit-proxy/';
+          config.clientId = 'ABC123';
+          assert.match(config.deviceId, uuidV4Re);
+
+          flush(function() {
+            var secondConfig = document.createElement('reddit-oauth-config');
+            assert.equal(secondConfig.proxyUrl,
+                         'http://localhost:9000/reddit-proxy/');
+            assert.equal(secondConfig.clientId,
+                         'ABC123');
+            assert.match(secondConfig.deviceId, uuidV4Re);
+            done();
+          });
+        });
+
+        test('sync changes', function(done) {
+          var configA = document.createElement('reddit-oauth-config');
+          var configB = document.createElement('reddit-oauth-config');
+          configA.proxyUrl = '/reddit-proxy/';
+          configA.clientId = '123ABC';
+          flush(function() {
+            assert.equal(reddit.auth.config.proxyUrl, configA.proxyUrl);
+            assert.equal(configB.proxyUrl, configA.proxyUrl);
+            assert.equal(configB.clientId, configA.clientId);
+            done();
+          });
+        });
+
+        test('JS api', function(done) {
+          reddit.auth.config.proxyUrl = '/reddit-proxy-js/';
+          reddit.auth.config.clientId = '123ABC-js';
+          var configA = document.createElement('reddit-oauth-config');
+          assert.equal(configA.proxyUrl, '/reddit-proxy-js/');
+          assert.equal(configA.clientId, '123ABC-js');
+          configA.proxyUrl = '/reddit-proxy/';
+          configA.clientId = '123ABC';
+          flush(function() {
+            assert.equal(reddit.auth.config.proxyUrl, '/reddit-proxy/');
+            assert.equal(reddit.auth.config.clientId, '123ABC');
+            assert.match(reddit.auth.config.deviceId, uuidV4Re);
+            done();
+          });
+        });
+      });
+
+    })();
+    </script>
+  </body>
+</html>

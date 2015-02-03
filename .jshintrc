@@ -1,0 +1,40 @@
+{
+  "bitwise": true,
+  "camelcase": false,
+  "curly": true,
+  "eqeqeq": true,
+  "esnext": true,
+  "immed": true,
+  "indent": 2,
+  "latedef": true,
+  "newcap": false,
+  "noarg": true,
+  "quotmark": "single",
+  "regexp": true,
+  "smarttabs": false,
+  "strict": true,
+  "trailing": true,
+  "undef": true,
+  "unused": true,
+
+  // Environments
+  "browser": true,
+  "jquery": false,
+  "mocha": true,
+  "node": false,
+
+  // Globals
+  "globals": {
+    "assert": true,
+    "flush": true,
+    "ObjectObserver": true,
+    "PathObserver": true,
+    "Platform": true,
+    "Polymer": true,
+    "reddit": true,
+    "sinon": true,
+    "unwrap": true,
+    "WCT": true,
+    "wrap": true
+  }
+}
