@@ -9,7 +9,7 @@
   "main": "reddit-oauth.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^0.5.2",
-    "client-uuid": "~0.1.0",
+    "client-uuid": "~0.1.0"
   },
   "devDependencies": {
     "es6-shim": "~0.23.0",
