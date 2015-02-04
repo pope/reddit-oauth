@@ -4,15 +4,72 @@
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
   <title>reddit-oauth Demo</title>
 
+  <script src="../es6-shim/es6-shim.js"></script>
   <script src="../webcomponentsjs/webcomponents.js"></script>
   <link rel="import" href="reddit-oauth.html">
+  <link rel="import" href="../core-ajax/core-ajax.html">
 
 </head>
-<body unresolved>
+<body unresolved fullbleed vertical layout>
 
-  <p>An `reddit-oauth` looks like this:</p>
+  <polymer-element name="x-demo">
+    <template>
+      <reddit-oauth-config id="config"
+                           proxyUrl="https://shifteleven.com/reddit-auth"
+                           clientId="Qp88M_mzWd9ZWg"
+                           timeout="1000">
+      </reddit-oauth-config>
+      <reddit-oauth id="oauth"></reddit-oauth>
+      <core-ajax id="ajax"
+                 url="https://oauth.reddit.com/hot.json"
+                 handleAs="json"
+                 on-core-response="{{handleResponse}}">
+      </core-ajax>
 
-  <reddit-oauth></reddit-oauth>
+      <template if="{{isLoading}}">
+        <div center layout vertical center-justified fit>
+          <strong>Loading...</strong>
+        </div>
+      </template>
+      <template repeat="{{entries}}">
+        <p>
+          <a href="{{data.url}}">{{data.title}}</a>
+        </p>
+      </template>
+    </template>
+    <script>
+      Polymer({
+        entries: null,
+        isLoading: true,
+
+        created: function() {
+          this.entries = [];
+        },
+
+        ready: function() {
+          this.$.oauth.getToken().then(function(token) {
+            this.$.ajax.headers = {
+              'Authorization': 'bearer ' + token
+            };
+            this.$.ajax.go();
+          }.bind(this)).catch(function(err) {
+            console.error(err);
+          });
+        },
+
+        handleResponse: function() {
+          this.isLoading = false;
+          if (this.$.ajax.error) {
+            console.error(err);
+            return;
+          }
+          this.entries = this.$.ajax.response.data.children;
+        }
+      });
+    </script>
+  </polymer-element>
+
+  <x-demo></x-demo>
 
 </body>
 </html>

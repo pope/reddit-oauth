@@ -12,6 +12,7 @@
     "client-uuid": "~0.1.0"
   },
   "devDependencies": {
+    "core-ajax": "Polymer/core-ajax#^0.5.2",
     "es6-shim": "~0.23.0",
     "web-component-tester": "Polymer/web-component-tester#^2.2.1"
   }
