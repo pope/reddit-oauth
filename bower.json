@@ -10,9 +10,9 @@
   "dependencies": {
     "polymer": "Polymer/polymer#^0.5.2",
     "client-uuid": "~0.1.0",
-    "core-localstorage": "Polymer/core-localstorage#~0.5.2"
   },
   "devDependencies": {
-    "web-component-tester": "Polymer/web-component-tester#^2.0.5"
+    "es6-shim": "~0.23.0",
+    "web-component-tester": "Polymer/web-component-tester#^2.2.1"
   }
 }

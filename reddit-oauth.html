@@ -171,6 +171,12 @@ a new app-only token will be made available.
       });
     </script>
 
+##### Note
+
+This code makes use of some ES6 features, notably the `Promise` object. If you
+want this to work on browsers that do not have such support, consider using a
+shim, like `es6-shim`.
+
 @element reddit-oauth
 @blurb Element to manage OAuth tokens for accessing Reddit APIs.
 @status alpha
