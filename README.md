@@ -1,3 +1,6 @@
+[![Build Status](https://drone.io/github.com/pope/reddit-oauth/status.png)](https://drone.io/github.com/pope/reddit-oauth/latest)
+[![Analytics](https://ga-beacon.appspot.com/UA-280328-3/pope/reddit-oauth/README)](https://github.com/igrigorik/ga-beacon)
+
 reddit-oauth
 ================
 
