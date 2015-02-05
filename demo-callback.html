@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>reddit-oauth Demo Callback</title>
+
+  <script src="../es6-shim/es6-shim.js"></script>
+  <script src="../webcomponentsjs/webcomponents.js"></script>
+  <link rel="import" href="reddit-oauth.html">
+
+</head>
+<body unresolved fullbleed vertical layout>
+
+  <polymer-element name="x-demo-callback">
+    <template>
+      <client-uuid id="uuid"></client-uuid>
+      <reddit-oauth id="oauth"></reddit-oauth>
+    </template>
+    <script>
+      Polymer({
+        ready: function() {
+          var response = location.hash.substring(1).split("&").
+              map(function(part) {
+                return part.split("=").map(decodeURIComponent);
+              }).
+              reduce(function(obj, parts) {
+                obj[parts[0]] = parts[1];
+                return obj;
+              }, {});
+          if (this.$.uuid.value !== response.state) {
+            console.error('Unexpected state.');
+            return;
+          }
+          this.$.oauth.authorize({
+            accessToken: response.access_token,
+            expiresAt: Date.now() + (response.expires_in * 1000),
+            scope: response.scope,
+            type: 'implicit'
+          });
+          window.location.replace('demo.html');
+        }
+      });
+    </script>
+  </polymer-element>
+
+  <x-demo-callback></x-demo-callback>
+
+</body>
+</html>

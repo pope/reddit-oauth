@@ -14,9 +14,18 @@
 
   <polymer-element name="x-demo">
     <template>
+      <style>
+        #login {
+          text-align: right;
+        }
+
+        #links {
+          padding: 0 2em;
+        }
+      </style>
       <reddit-oauth-config id="config"
                            proxyUrl="https://shifteleven.com/reddit-auth"
-                           clientId="Qp88M_mzWd9ZWg"
+                           clientId="{{clientId}}"
                            timeout="1000">
       </reddit-oauth-config>
       <reddit-oauth id="oauth"></reddit-oauth>
@@ -25,22 +34,33 @@
                  handleAs="json"
                  on-core-response="{{handleResponse}}">
       </core-ajax>
+      <client-uuid value="{{uuid}}"></client-uuid>
 
+      <div id="login">
+        <!-- Implicit Flow -->
+        <a href="https://www.reddit.com/api/v1/authorize?client_id={{clientId}}&amp;response_type=token&amp;state={{uuid}}&amp;redirect_uri={{encode(redirectUri)}}&amp;scope=read">Log into Reddit</a>
+      </div>
       <template if="{{isLoading}}">
         <div center layout vertical center-justified fit>
           <strong>Loading...</strong>
         </div>
       </template>
-      <template repeat="{{entries}}">
-        <p>
-          <a href="{{data.url}}">{{data.title}}</a>
-        </p>
-      </template>
+      <div id="links">
+        <template repeat="{{entries}}">
+          <p>
+            <a href="{{data.url}}">{{data.title}}</a>
+          </p>
+        </template>
+      </div>
     </template>
     <script>
       Polymer({
+        clientId: 'Qp88M_mzWd9ZWg',
+        redirectUri: 'https://pope.github.io/reddit-oauth/components/reddit-oauth/demo-callback.html',
+
         entries: null,
         isLoading: true,
+        uuid: '',
 
         created: function() {
           this.entries = [];
@@ -64,6 +84,10 @@
             return;
           }
           this.entries = this.$.ajax.response.data.children;
+        },
+
+        encode: function(txt) {
+          return encodeURIComponent(txt);
         }
       });
     </script>
