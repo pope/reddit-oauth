@@ -1,0 +1,29 @@
+{
+  "name": "reddit-oauth",
+  "keywords": [
+    "polymer",
+    "reddit",
+    "web-components"
+  ],
+  "main": "reddit-oauth.html",
+  "dependencies": {
+    "client-uuid": "~0.1.0",
+    "core-ajax": "Polymer/core-ajax#^0.5.2",
+    "es6-shim": "~0.23.0",
+    "polymer": "Polymer/polymer#^0.5.2"
+  },
+  "devDependencies": {
+    "web-component-tester": "Polymer/web-component-tester#^2.2.1"
+  },
+  "homepage": "https://github.com/pope/reddit-oauth",
+  "_release": "0a89a6fe04",
+  "_resolution": {
+    "type": "branch",
+    "branch": "master",
+    "commit": "0a89a6fe0401d2a8cda8a10f77c2cb608c01ef29"
+  },
+  "_source": "git://github.com/pope/reddit-oauth.git",
+  "_target": "master",
+  "_originalSource": "pope/reddit-oauth",
+  "_direct": true
+}

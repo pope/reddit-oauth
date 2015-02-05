@@ -1,0 +1,26 @@
+{
+  "name": "client-uuid",
+  "version": "0.1.0",
+  "keywords": [
+    "polymer",
+    "uuid",
+    "web-components"
+  ],
+  "main": "client-uuid.html",
+  "dependencies": {
+    "polymer": "Polymer/polymer#^0.5.2"
+  },
+  "devDependencies": {
+    "web-component-tester": "Polymer/web-component-tester#^2.0.5"
+  },
+  "homepage": "https://github.com/pope/client-uuid",
+  "_release": "0.1.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.1.0",
+    "commit": "da89802b07ce0cd58b18b8da4e1bd1ff7985af3a"
+  },
+  "_source": "git://github.com/pope/client-uuid.git",
+  "_target": "~0.1.0",
+  "_originalSource": "client-uuid"
+}

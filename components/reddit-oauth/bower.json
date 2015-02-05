@@ -1,0 +1,19 @@
+{
+  "name": "reddit-oauth",
+  "version": "0.1.0",
+  "keywords": [
+    "polymer",
+    "reddit",
+    "web-components"
+  ],
+  "main": "reddit-oauth.html",
+  "dependencies": {
+    "client-uuid": "~0.1.0",
+    "core-ajax": "Polymer/core-ajax#^0.5.2",
+    "es6-shim": "~0.23.0",
+    "polymer": "Polymer/polymer#^0.5.2"
+  },
+  "devDependencies": {
+    "web-component-tester": "Polymer/web-component-tester#^2.2.1"
+  }
+}

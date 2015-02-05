@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>client-uuid Demo</title>
+
+  <script src="../webcomponentsjs/webcomponents.js"></script>
+  <link rel="import" href="../polymer/polymer.html">
+  <link rel="import" href="client-uuid.html">
+
+</head>
+<body unresolved>
+
+  <polymer-element name="x-demo">
+    <template>
+      <client-uuid id="uuid" value="{{value}}"></client-uuid>
+      <p><strong>UUID:</strong> {{value}}</p>
+
+      <p>Refresh the page to verify the value doesn't change, as the value is stored inside of <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API">localStorage</a>.</p>
+
+      <p><button type="button" on-click="{{reset}}">Reset UUID</button> will generate a new UUID.</p>
+    </template>
+    <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        reset: function() {
+          this.$.uuid.reset();
+        }
+      });
+    })();
+    </script>
+  </polymer-element>
+
+  <x-demo></x-demo>
+
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>reddit-oauth</title>
+
+    <script src="../../es6-shim/es6-shim.js"></script>
+    <script src="../../webcomponentsjs/webcomponents.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../reddit-oauth.html">
+  </head>
+  <body>
+    <client-uuid name="reddit-uuid"></client-uuid>
+
+    <polymer-element name="x-child" attributes="value" noscript>
+      <template>
+        <reddit-oauth-config proxyUrl="{{value}}"></reddit-oauth-config>
+        <div>{{value}}</div>
+      </template>
+    </polymer-element>
+
+    <polymer-element name="x-test" attributes="proxyUrl clientId" noscript>
+      <template>
+        <h1>{{proxyUrl}} - {{clientId}}</h1>
+        <reddit-oauth-config proxyUrl="{{proxyUrl}}" clientId="{{clientId}}">
+        </reddit-oauth-config>
+        <x-child id="child"></x-child>
+      </template>
+    </polymer-element>
+
+    <x-test></x-test>
+
+    <script>
+    (function() {
+      'use strict';
+
+      suite('<reddit-oauth-config> binding', function() {
+
+        before(function() {
+          document.querySelector('client-uuid').reset();
+        });
+
+        test('config binding', function(done) {
+          var underTest = document.querySelector('x-test');
+          underTest.proxyUrl = '/reddit-proxy-1/';
+          underTest.clientId = 'ABC123-1';
+          flush(function() {
+            assert.equal(underTest.proxyUrl, '/reddit-proxy-1/');
+            assert.equal(underTest.clientId, 'ABC123-1');
+            var config = document.createElement('reddit-oauth-config');
+            assert.equal(config.proxyUrl, '/reddit-proxy-1/');
+            assert.equal(config.clientId, 'ABC123-1');
+            done();
+          });
+        });
+
+        test('child binding', function(done) {
+          var underTest = document.querySelector('x-test');
+          underTest.proxyUrl = '/reddit-proxy-2/';
+          flush(function() {
+            assert.equal(underTest.$.child.value, '/reddit-proxy-2/');
+            done();
+          });
+        });
+      });
+
+    })();
+    </script>
+  </body>
+</html>

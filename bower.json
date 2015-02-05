@@ -1,0 +1,7 @@
+{
+  "name": "reddit-oauth#gh-pages",
+  "private": true,
+  "dependencies": {
+    "reddit-oauth": "pope/reddit-oauth#master"
+  }
+}
