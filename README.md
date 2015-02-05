@@ -4,7 +4,7 @@
 reddit-oauth
 ================
 
-See the [component page](http://pope.github.io/reddit-oauth) for more information.
+See the [component page](https://pope.github.io/reddit-oauth) for more information.
 
 ## Getting Started
 
