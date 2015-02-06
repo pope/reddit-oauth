@@ -150,28 +150,17 @@
         });
 
         test('getToken() with implicit refresh', function(done) {
-          var resp = {
-            access_token: 'NEW_ACCESS_TOKEN',
-            refresh_token: 'NEW_REFRESH_TOKEN',
-            token_type: 'bearer',
-            expires_in: 3600,
-            scope: 'read'
-          };
-          var respHead = { 'Content-Type': 'application/json' };
-          var respBody = JSON.stringify(resp);
-          server.respondWith('POST', '/reddit-proxy/api/v1/access_token',
-                             [200, respHead, respBody]);
           oauth.authorize({
             accessToken: 'ACCESS_TOKEN',
-            refreshToken: 'REFRESH_TOKEN',
             expiresAt: Date.now(),  // expired
             scope: 'read,vote',
             type: 'implicit'
           });
           oauth.getToken().then(function(token) {
-            assert.equal(token, 'NEW_ACCESS_TOKEN');
-            assert.equal(requests.length, 1);
-            assert.match(requests[0].requestBody, /refresh_token=REFRESH_TOKEN/);
+            assert.fail();
+            done();
+          }, function(err) {
+            assert.match(err.message, /Implicit token expired/);
             done();
           }).catch(done);
         });

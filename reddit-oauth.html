@@ -292,30 +292,12 @@ shim, like `es6-shim`.
       return request;
     };
 
-    var requestTokenRefresh = function(auth) {
-      var params = {
-        'grant_type': 'refresh',
-        'refresh_token': auth.refreshToken
-      };
-      var request = requestAccess(params);
-      request.promise = request.promise.then(function(results) {
-        var data = results.data;
-        var start = results.start;
-        return {
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token,  // TODO(pope): Verify this!
-          expiresAt: start + (data.expires_in * 1000),
-          scope: data.scope,
-          type: 'implicit'
-        };
-      });
-      return request;
-    };
-
     var xhrRequestError = new Error('XHR Request Error');
     var xhrAbortError = new Error('XHR Request Abort');
     var xhrTimeoutError = new Error('XHR Request Timeout');
     var tokenCancelError = new Error('Token Request Cancel');
+    var implicitRefreshError = new Error('Implicit token expired. ' +
+        'Please re-login or revoke the token and try again.')
 
     var requestAccess = function(params) {
       var config = reddit.auth.config;
@@ -360,7 +342,9 @@ shim, like `es6-shim`.
 
     var refreshAuth = function(auth) {
       if (auth.type === 'implicit') {
-        return requestTokenRefresh(auth);
+        return {
+          promise: Promise.reject(implicitRefreshError)
+        };
       }
       return requestAppAuth();
     };
