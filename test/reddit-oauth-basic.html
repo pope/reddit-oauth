@@ -191,12 +191,11 @@
           }).catch(done);
         });
 
-        test('Cancel pending getToken() call when authorize()', function(done) {
+        test('Update pending getToken() call when authorize()', function(done) {
+          server.autoRespond = false;
           setupAppOnlyRequest();
           oauth.getToken().then(function(token) {
-            assert.fail(token);
-          }, function(e) {
-            assert.equal(e.message, 'Request Canceled');
+            assert.equal(token, 'NEW_TOKEN');
             done();
           }).catch(done);
           oauth.authorize({

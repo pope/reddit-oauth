@@ -312,6 +312,11 @@ shim, like `es6-shim`.
       return request;
     };
 
+    var xhrRequestError = new Error('XHR Request Error');
+    var xhrAbortError = new Error('XHR Request Abort');
+    var xhrTimeoutError = new Error('XHR Request Timeout');
+    var tokenCancelError = new Error('Token Request Cancel');
+
     var requestAccess = function(params) {
       var config = reddit.auth.config;
       var xhr = new XMLHttpRequest();
@@ -340,13 +345,13 @@ shim, like `es6-shim`.
             }
           };
           xhr.onerror = function() {
-            reject(new Error('XHR Request Error'));
+            reject(xhrRequestError);
           };
           xhr.onabort = function() {
-            reject(new Error('XHR Request Abort'));
+            reject(xhrAbortError);
           };
           xhr.ontimeout = function() {
-            reject(new Error('XHR Request Timeout'));
+            reject(xhrTimeoutError);
           };
           xhr.send(toQueryString(params));
         })
@@ -406,7 +411,7 @@ shim, like `es6-shim`.
         this.token_ = Promise.resolve(loadAuth()).
             then(function(auth) {
               if (requestId !== this.requestId_) {
-                throw Error('Request Canceled');
+                throw xhrAbortError;
               }
               if (!auth) {
                 var req = requestAppAuth();
@@ -417,9 +422,8 @@ shim, like `es6-shim`.
             }.bind(this)).
             then(function(auth) {
               if (requestId !== this.requestId_) {
-                throw Error('Request Canceled');
+                throw xhrAbortError;
               }
-
               if (auth.expiresAt <= Date.now()) {
                 var req = refreshAuth(auth);
                 this.activeXhr_ = req.xhr;
@@ -429,9 +433,8 @@ shim, like `es6-shim`.
             }.bind(this)).
             then(function(auth) {
               if (requestId !== this.requestId_) {
-                throw Error('Request Canceled');
+                throw xhrAbortError;
               }
-
               saveAuth(auth);
               this.token_ = null;
               this.activeXhr_ = null;
@@ -440,6 +443,9 @@ shim, like `es6-shim`.
             catch(function(err) {
               this.token_ = null;
               this.activeXhr_ = null;
+              if (err === xhrAbortError || err === tokenCancelError) {
+                return this.getToken();
+              }
               throw err;
             }.bind(this));
         return this.token_;
