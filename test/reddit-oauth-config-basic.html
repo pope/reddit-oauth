@@ -26,14 +26,17 @@
 
         test('reuse config', function(done) {
           var config = document.createElement('reddit-oauth-config');
-          config.proxyUrl = 'http://localhost:9000/reddit-proxy/';
+          config.proxyUrl = 'http://localhost:9000/reddit-proxy';
+          config.redirectUrl = 'http://localhost:9000/reddit-callback/',
           config.clientId = 'ABC123';
           assert.match(config.deviceId, uuidV4Re);
 
           flush(function() {
             var secondConfig = document.createElement('reddit-oauth-config');
             assert.equal(secondConfig.proxyUrl,
-                         'http://localhost:9000/reddit-proxy/');
+                         'http://localhost:9000/reddit-proxy');
+            assert.equal(secondConfig.redirectUrl,
+                         'http://localhost:9000/reddit-callback/');
             assert.equal(secondConfig.clientId,
                          'ABC123');
             assert.match(secondConfig.deviceId, uuidV4Re);
@@ -44,26 +47,33 @@
         test('sync changes', function(done) {
           var configA = document.createElement('reddit-oauth-config');
           var configB = document.createElement('reddit-oauth-config');
-          configA.proxyUrl = '/reddit-proxy/';
+          configA.proxyUrl = '/reddit-proxy';
+          configA.redirectUrl = 'https://www.mysite.com/reddit-callback.html';
           configA.clientId = '123ABC';
           flush(function() {
             assert.equal(reddit.auth.config.proxyUrl, configA.proxyUrl);
             assert.equal(configB.proxyUrl, configA.proxyUrl);
+            assert.equal(configB.redirectUrl, configA.redirectUrl);
             assert.equal(configB.clientId, configA.clientId);
             done();
           });
         });
 
         test('JS api', function(done) {
-          reddit.auth.config.proxyUrl = '/reddit-proxy-js/';
+          reddit.auth.config.proxyUrl = '/reddit-proxy-js';
+          reddit.auth.config.redirectUrl = 'http://localhost:8080/rcb.html';
           reddit.auth.config.clientId = '123ABC-js';
           var configA = document.createElement('reddit-oauth-config');
-          assert.equal(configA.proxyUrl, '/reddit-proxy-js/');
+          assert.equal(configA.proxyUrl, '/reddit-proxy-js');
+          assert.equal(configA.redirectUrl, 'http://localhost:8080/rcb.html');
           assert.equal(configA.clientId, '123ABC-js');
-          configA.proxyUrl = '/reddit-proxy/';
+          configA.proxyUrl = '/reddit-proxy';
+          configA.redirectUrl = 'http://localhost:8080/reddit-callback.html';
           configA.clientId = '123ABC';
           flush(function() {
-            assert.equal(reddit.auth.config.proxyUrl, '/reddit-proxy/');
+            assert.equal(reddit.auth.config.proxyUrl, '/reddit-proxy');
+            assert.equal(reddit.auth.config.redirectUrl,
+                         'http://localhost:8080/reddit-callback.html');
             assert.equal(reddit.auth.config.clientId, '123ABC');
             assert.match(reddit.auth.config.deviceId, uuidV4Re);
             done();

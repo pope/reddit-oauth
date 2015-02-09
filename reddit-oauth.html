@@ -9,6 +9,7 @@ Element to configure OAuth tokens access to Reddit.
 To set the values:
 
     <reddit-oauth-config proxyUrl="https://shifteleven.com/reddit-auth"
+                         redirectUrl="https://example.net/reddit-callback.html"
                          clientId="ABC123"
                          requestTimeout="1000">
     </reddit-oauth-config>
@@ -16,6 +17,7 @@ To set the values:
 To access the config:
 
     <reddit-oauth-config proxyUrl="{{proxyUrl}}"
+                         redirectUrl="{{redirectUrl}}"
                          clientId="{{clientId}}"
                          deviceId="{{deviceId}}"
                          requestTimeout="{{requestTimeout}}">
@@ -37,6 +39,7 @@ To access the config:
 
     var config = {
       proxyUrl: '',
+      redirectUrl: '',
       clientId: '',
       deviceId: '',
       requestTimeout: 0,
@@ -60,6 +63,18 @@ To access the config:
        * @type string
        */
       proxyUrl: '',
+
+      /**
+       * The redirect URL Reddit calls upon successful authorization.
+       *
+       * This URL is the one registered with Reddit. If this differs from the
+       * one associated with the `clientId` then authorizations calls will
+       * fail.
+       *
+       * @attribute redirectUrl
+       * @type string
+       */
+      redirectUrl: '',
 
       /**
        * The client ID of the app.
@@ -96,6 +111,10 @@ To access the config:
         config.proxyUrl = this.proxyUrl;
       },
 
+      redirectUrlChanged: function() {
+        config.redirectUrl = this.redirectUrl;
+      },
+
       clientIdChanged: function() {
         config.clientId = this.clientId;
       },
@@ -110,6 +129,7 @@ To access the config:
 
       created: function() {
         this.proxyUrl = config.proxyUrl;
+        this.redirectUrl = config.redirectUrl;
         this.clientId = config.clientId;
         this.requestTimeout = config.requestTimeout;
         var observer = new ObjectObserver(config);
@@ -132,6 +152,9 @@ To access the config:
       ready: function() {
         if (this.proxyUrl !== config.proxyUrl) {
           config.proxyUrl = this.proxyUrl;
+        }
+        if (this.redirectUrl !== config.redirectUrl) {
+          config.redirectUrl = this.redirectUrl;
         }
         if (this.clientId !== config.clientId) {
           config.clientId = this.clientId;
