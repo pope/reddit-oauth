@@ -251,6 +251,16 @@ shim, like `es6-shim`.
       },
 
       /**
+       * Authorizes a user with the code from the authorization process.
+       *
+       * @method authorizeWithCode
+       * @param {string} code The code used by the retrieval flow to get auth.
+       */
+      authorizeWithCode: function(code) {
+        globalAuth.authorizeWithCode(code);
+      },
+
+      /**
        * Revokes the current auth data. Useful if the user decides to sign out.
        *
        * @method revoke
@@ -318,7 +328,6 @@ shim, like `es6-shim`.
     var xhrRequestError = new Error('XHR Request Error');
     var xhrAbortError = new Error('XHR Request Abort');
     var xhrTimeoutError = new Error('XHR Request Timeout');
-    var tokenCancelError = new Error('Token Request Cancel');
     var implicitRefreshError = new Error('Implicit token expired. ' +
         'Please re-login or revoke the token and try again.')
 
@@ -363,6 +372,47 @@ shim, like `es6-shim`.
       };
     };
 
+    var requestTokenRefresh = function(auth) {
+      var params = {
+        'grant_type': 'refresh',
+        'refresh_token': auth.refreshToken
+      };
+      var request = requestAccess(params);
+      request.promise = request.promise.then(function(results) {
+        var data = results.data;
+        var start = results.start;
+        return {
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token || auth.refresh_token,
+          expiresAt: start + (data.expires_in * 1000),
+          scope: data.scope,
+          type: 'code'
+        };
+      });
+      return request;
+    };
+
+    var requestAuthFromCode = function(code) {
+      var params = {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': reddit.auth.config.redirectUrl
+      };
+      var request = requestAccess(params);
+      request.promise = request.promise.then(function(results) {
+        var data = results.data;
+        var start = results.start;
+        return {
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          expiresAt: start + (data.expires_in * 1000),
+          scope: data.scope,
+          type: 'code'
+        };
+      });
+      return request;
+    };
+
     var refreshAuth = function(auth) {
       if (auth.type === 'implicit') {
         return {
@@ -383,21 +433,43 @@ shim, like `es6-shim`.
       authorize: function(auth) {
         // Cancel existing requests.
         // Save the new token.
-        this.requestId_++;
-        if (this.activeXhr_) {
-          this.activeXhr_.abort();
-        }
+        this.updateRequestState();
         saveAuth(auth);
+      },
+
+      authorizeWithCode: function(code) {
+        // Cancel existing requests.
+        // Create a new token from the response from the code retrieval.
+        // Save the response from this new response.
+        this.updateRequestState();
+        var requestId = this.requestId_;
+        var request = requestAuthFromCode(code);
+        this.activeXhr_ = request.xhr;
+        this.token_ = request.promise.
+            then(function(auth) {
+              if (requestId !== this.requestId_) {
+                return null;
+              }
+              saveAuth(auth);
+              this.token_ = null;
+              this.activeXhr_ = null;
+              return auth.accessToken;
+            }.bind(this)).
+            catch(function(err) {
+              if (err === xhrAbortError) {
+                return null;
+              }
+              this.token_ = null;
+              this.activeXhr_ = null;
+              throw err;
+            }.bind(this));
       },
 
       revoke: function() {
         // Cancel existing requests.
         // Call the revoke service.
         // Delete the token.
-        this.requestId_++;
-        if (this.activeXhr_) {
-          this.activeXhr_.abort();
-        }
+        this.updateRequestState();
         deleteAuth();
         // TODO(pope): Call the revoke service.
       },
@@ -418,7 +490,7 @@ shim, like `es6-shim`.
         this.token_ = Promise.resolve(loadAuth()).
             then(function(auth) {
               if (requestId !== this.requestId_) {
-                throw xhrAbortError;
+                return this.getToken();
               }
               if (!auth) {
                 var req = requestAppAuth();
@@ -429,7 +501,7 @@ shim, like `es6-shim`.
             }.bind(this)).
             then(function(auth) {
               if (requestId !== this.requestId_) {
-                throw xhrAbortError;
+                return this.getToken();
               }
               if (auth.expiresAt <= Date.now()) {
                 var req = refreshAuth(auth);
@@ -440,7 +512,7 @@ shim, like `es6-shim`.
             }.bind(this)).
             then(function(auth) {
               if (requestId !== this.requestId_) {
-                throw xhrAbortError;
+                return this.getToken();
               }
               saveAuth(auth);
               this.token_ = null;
@@ -448,15 +520,24 @@ shim, like `es6-shim`.
               return auth.accessToken;
             }.bind(this)).
             catch(function(err) {
-              this.token_ = null;
-              this.activeXhr_ = null;
-              if (err === xhrAbortError || err === tokenCancelError) {
+              if (err === xhrAbortError) {
                 return this.getToken();
               }
+              this.token_ = null;
+              this.activeXhr_ = null;
               throw err;
             }.bind(this));
         return this.token_;
-      }
+      },
+
+      updateRequestState: function() {
+        this.requestId_++;
+        if (this.activeXhr_) {
+          this.activeXhr_.abort();
+          this.activeXhr_ = null;
+        }
+        this.token_ = null;
+      },
     };
 
   })();

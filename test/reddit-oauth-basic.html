@@ -12,6 +12,7 @@
   </head>
   <body>
     <reddit-oauth-config proxyUrl="/reddit-proxy"
+                         redirectUrl="https://foo.com/auth-callback/"
                          clientId="ABC123"
                          requestTimeout="1000">
     </reddit-oauth-config>
@@ -81,6 +82,33 @@
             assert.equal(requests.length, 0);
             done();
           }).catch(done);
+        });
+
+        test('authorizeWithCode()', function(done) {
+          var resp = {
+            access_token: 'CODE_ACCESS_TOKEN',
+            refresh_token: 'REFRESH_TOKEN',
+            token_type: 'bearer',
+            expires_in: 3600,
+            scope: 'read'
+          };
+          var respHead = { 'Content-Type': 'application/json' };
+          var respBody = JSON.stringify(resp);
+          server.respondWith('POST', '/reddit-proxy/api/v1/access_token',
+                             [200, respHead, respBody]);
+
+          oauth.authorizeWithCode('CODE');
+          oauth.getToken().
+              then(function(token) {
+                assert.equal(token, 'CODE_ACCESS_TOKEN');
+                assert.equal(requests.length, 1);
+                // Call again to make sure it's cached.
+                return oauth.getToken();
+              }).then(function(token) {
+                assert.equal(token, 'CODE_ACCESS_TOKEN');
+                assert.equal(requests.length, 1);
+                done();
+              }).catch(done);
         });
 
         test('revoke()', function() {
